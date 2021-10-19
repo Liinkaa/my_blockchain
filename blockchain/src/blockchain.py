@@ -2,8 +2,7 @@
 
 from block import Block
 import time
-import hashlib
-import json	
+from encryption import *
 
 class BlockChain:
 
@@ -72,13 +71,6 @@ class BlockChain:
 		guess = f'{previous_proof}{proof}{previous_hash}'.encode()
 		guess_hash = hashlib.sha256(guess).hexdigest()
 		return guess_hash[:3] == "000"
-
-
-	@staticmethod
-	def hash(block: dict):
-		"""Create a SHA-256 hash of a block content"""
-		block_content = json.dumps(block, sort_keys = True).encode()
-		return hashlib.sha256(block_content).hexdigest()
 
 
 
