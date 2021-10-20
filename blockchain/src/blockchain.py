@@ -1,19 +1,35 @@
 """Module implementing BlockChain Class"""
 
-from block import Block
 import time
 from encryption import *
+from block import Block
+from json_files.blockchain_json_store import BlockchainJSONStore
 
-class BlockChain:
+class BlockChain(BlockchainJSONStore):
 
 	def __init__(self):
 
-		self.chain = []
+		super().__init__()
+
+		self.chain = [] 
 		self.current_transactions = []
 
-		#create the mother block in the chain
-		self.add_block(proof = 100, previous_blk_hash = '1')
+		#Load what is saved in storage
+		self.__initialize_blockchain()
 
+
+	def __initialize_blockchain(self):
+		"""Method that helps to transform dictionaries from json file into blocks from the stored log"""
+		#reset the chain to make sure
+		self.chain = []
+		storage =self.get_initial_blockchain()
+		#create the mother block in the chain in case it is empty
+		if len(storage) == 0:
+			self.add_block(proof = 100, previous_blk_hash = '1')
+			return
+		else:
+			for json_block in storage:
+				self.chain.append(Block(json_block['index'], json_block['timestamp'], json_block['transactions'], json_block['proof'], json_block['previous_blk']))
 
 	def add_block(self, proof: int, previous_blk_hash: str):
 		"""Create a new block and append it to the chain"""
@@ -23,20 +39,26 @@ class BlockChain:
 		
 		#reset the current transactions
 		self.current_transactions = []
-		
-		return
+
+		#register this data in a the mining log
+		self.register_mined_block(new_block.content)
+
+		return new_block
 
 
-	def add_transaction(self, sender: str, receiver: str, data: str):
+	def add_transaction(self, sender: str, receiver: str, amount: int):
 		"""Create a new transaction and add it to the list"""
 		new_transaction = {
 			'sender' : sender,
 			'receiver' : receiver,
-			'data' : data
+			'amount' : amount
 		}
 		
 		self.current_transactions.append(new_transaction)
 		
+		#register this transaction in the log files
+		self.register_transaction_booklet(new_transaction)
+
 		#return the index of the block that will hold this transaction
 		return self.last_block['index'] + 1
 
@@ -57,7 +79,7 @@ class BlockChain:
 		#initialize guess to 0
 		proof = 0
 
-		while validate_proof(previous_proof, previous_hash, proof) == False:
+		while self.validate_proof(previous_proof, previous_hash, proof) == False:
 			proof += 1
 
 		return proof
@@ -71,6 +93,7 @@ class BlockChain:
 		guess = f'{previous_proof}{proof}{previous_hash}'.encode()
 		guess_hash = hashlib.sha256(guess).hexdigest()
 		return guess_hash[:3] == "000"
+
 
 
 
